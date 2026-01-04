@@ -10,8 +10,21 @@ import (
 
 type fakeService struct {
 	receivedPage *string
-	stocks      []stock.Stock
-	err         error
+	stocks       []stock.Stock
+	err          error
+}
+
+type fakerepository struct {
+	upsertedStocks []stock.Stock
+	err            error
+}
+
+func (f *fakerepository) Upsert(s stock.Stock) error {
+	if f.err != nil {
+		return f.err
+	}
+	f.upsertedStocks = append(f.upsertedStocks, s)
+	return nil
 }
 
 // GetStocks implements stock.StockProvider.
@@ -31,7 +44,8 @@ func TestHandler_List_NoNextPage(t *testing.T) {
 		},
 	}
 
-	handler := stock.NewHandler(*stock.NewService(service))
+	repository := &fakerepository{}
+	handler := stock.NewHandler(*stock.NewService(service, repository))
 
 	req := httptest.NewRequest(http.MethodGet, "/stocks", nil)
 	w := httptest.NewRecorder()
@@ -56,8 +70,10 @@ func TestHandler_List_ServiceError(t *testing.T) {
 	service := &fakeService{
 		err: errors.New("boom"),
 	}
-
-	handler := stock.NewHandler(*stock.NewService(service))
+	repository := &fakerepository{
+		err: errors.New("boom"),
+	}
+	handler := stock.NewHandler(*stock.NewService(service, repository))
 
 	req := httptest.NewRequest(http.MethodGet, "/stocks", nil)
 	w := httptest.NewRecorder()
