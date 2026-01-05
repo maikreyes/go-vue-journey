@@ -41,6 +41,14 @@ func (m *MockStockRepository) Upsert(s stock.Stock) error {
 	return nil
 }
 
+func (m *MockStockRepository) GetStocks() ([]stock.Stock, error) {
+	return nil, nil
+}
+
+func (m *MockStockRepository) GetTopStocks(n int) ([]stock.Stock, error) {
+	return nil, nil
+}
+
 func TestNewService(t *testing.T) {
 	provider := &MockStockProvider{}
 	repository := &MockStockRepository{}

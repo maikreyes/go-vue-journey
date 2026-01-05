@@ -43,8 +43,6 @@ func main() {
 	repo := cockroachdb.New(db)
 	repoWithLogging := logging.New(repo)
 
-	//nooprepo := noop.New()
-
 	syncService := sync.NewService(apiService, repoWithLogging, 5)
 
 	go syncService.Run()

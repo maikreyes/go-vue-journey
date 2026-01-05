@@ -2,6 +2,7 @@ package stock
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 )
 
@@ -30,4 +31,18 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)
+}
+
+func (h *Handler) GetTopStocks(w http.ResponseWriter, r *http.Request) {
+	limit := 5
+
+	stocks, err := h.service.repository.GetTopStocks(limit)
+	if err != nil {
+		log.Println("GetTopStocks error:", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(stocks)
+
 }

@@ -44,3 +44,93 @@ func (r *Repository) Upsert(s stock.Stock) error {
 
 	return err
 }
+
+func (r *Repository) GetStocks() ([]stock.Stock, error) {
+	rows, err := r.db.Query(`
+		SELECT * FROM stocks
+	`)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var stocks []stock.Stock
+
+	for rows.Next() {
+		var s stock.Stock
+		err := rows.Scan(
+			&s.Ticker,
+			&s.TargetFrom,
+			&s.TargetTo,
+			&s.Company,
+			&s.Action,
+			&s.Brokerage,
+			&s.RatingFrom,
+			&s.RatingTo,
+			&s.Time,
+		)
+		if err != nil {
+			return nil, err
+		}
+		stocks = append(stocks, s)
+	}
+	return stocks, nil
+}
+
+func (r *Repository) GetTopStocks(limit int) ([]stock.Stock, error) {
+
+	rows, err := r.db.Query(`
+		SELECT *
+		FROM stocks
+		WHERE rating_to = $1
+		ORDER BY
+		(
+		(
+			REPLACE(REPLACE(target_to, '$', ''), ',', '')::numeric
+		- REPLACE(REPLACE(target_from, '$', ''), ',', '')::numeric
+		)
+		/
+		NULLIF(
+			REPLACE(REPLACE(target_from, '$', ''), ',', '')::numeric,
+			0
+		)
+		) DESC
+		LIMIT $2;
+		`,
+		"Buy",
+		limit,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var stocks []stock.Stock
+	for rows.Next() {
+		var s stock.Stock
+		err := rows.Scan(
+			&s.Ticker,
+			&s.TargetFrom,
+			&s.TargetTo,
+			&s.Company,
+			&s.Action,
+			&s.Brokerage,
+			&s.RatingFrom,
+			&s.RatingTo,
+			&s.Time,
+		)
+		if err != nil {
+			return nil, err
+		}
+		stocks = append(stocks, s)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return stocks, nil
+}

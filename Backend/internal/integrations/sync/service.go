@@ -44,17 +44,14 @@ func (s *Service) Run() error {
 			return err
 		}
 
-		// Guardar stocks
 		for _, item := range result.Items {
 			stocksCh <- item
 		}
 
-		// Si no hay siguiente → fin
 		if result.NextPage == nil {
 			break
 		}
 
-		// Detectar loop
 		if _, exists := seenPages[*result.NextPage]; exists {
 			break
 		}

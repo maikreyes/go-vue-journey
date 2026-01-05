@@ -27,6 +27,14 @@ func (f *fakerepository) Upsert(s stock.Stock) error {
 	return nil
 }
 
+func (f *fakerepository) GetStocks() ([]stock.Stock, error) {
+	return nil, nil
+}
+
+func (f *fakerepository) GetTopStocks(n int) ([]stock.Stock, error) {
+	return nil, nil
+}
+
 // GetStocks implements stock.StockProvider.
 func (f *fakeService) GetStocks(page *string) (*stock.Page, error) {
 	f.receivedPage = page

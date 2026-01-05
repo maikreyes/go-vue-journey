@@ -25,24 +25,40 @@ func (f *fakeProvider) GetStocks(page *string) (*stock.Page, error) {
 }
 
 type fakeRepo struct {
-	saved chan stock.Stock
+	saved []stock.Stock
 }
 
 func newFakeRepo() *fakeRepo {
 	return &fakeRepo{
-		saved: make(chan stock.Stock, 10),
+		saved: []stock.Stock{},
 	}
 }
 
 func (f *fakeRepo) Upsert(s stock.Stock) error {
-	f.saved <- s
+	f.saved = append(f.saved, s)
 	return nil
+}
+
+func (f *fakeRepo) GetStocks() ([]stock.Stock, error) {
+	return f.saved, nil
+}
+
+func (f *fakeRepo) GetTopStocks(n int) ([]stock.Stock, error) {
+	return nil, nil
 }
 
 type failingRepo struct{}
 
 func (f failingRepo) Upsert(stock.Stock) error {
 	return errors.New("db down")
+}
+
+func (f failingRepo) GetStocks() ([]stock.Stock, error) {
+	return nil, errors.New("db down")
+}
+
+func (f failingRepo) GetTopStocks(n int) ([]stock.Stock, error) {
+	return nil, errors.New("db down")
 }
 
 func TestService_ListStocks_FetchAndStore(t *testing.T) {
@@ -56,18 +72,21 @@ func TestService_ListStocks_FetchAndStore(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if len(result.Items) != 3 {
-		t.Fatalf("expected 3 items, got %d", len(result.Items))
+	if len(*result) != 3 {
+		t.Fatalf("expected 3 items, got %d", len(*result))
 	}
 
 	if !provider.called {
 		t.Fatal("expected provider to be called")
 	}
 
-	saved := map[string]bool{}
+	// Verify all stocks were saved to repo
+	if len(repo.saved) != 3 {
+		t.Fatalf("expected 3 stocks to be saved, got %d", len(repo.saved))
+	}
 
-	for i := 0; i < 3; i++ {
-		stock := <-repo.saved
+	saved := map[string]bool{}
+	for _, stock := range repo.saved {
 		saved[stock.Ticker] = true
 	}
 
@@ -85,8 +104,13 @@ func TestService_ListStocks_RepoFailureDoesNotBreakResponse(t *testing.T) {
 
 	service := stock.NewService(provider, repo)
 
-	_, err := service.ListStocks(nil)
+	result, err := service.ListStocks(nil)
 	if err != nil {
 		t.Fatal("expected no error even if repo fails")
+	}
+
+	// Should fallback to API results when repo fails
+	if len(*result) != 3 {
+		t.Fatalf("expected 3 items from API fallback, got %d", len(*result))
 	}
 }
