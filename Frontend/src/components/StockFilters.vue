@@ -31,7 +31,7 @@
         store.filter === 'all' && activeClass
       ]"
     >
-      Todas: {{ store.totalCount }}
+      All: {{ store.totalCount }}
     </button>
 
     <!-- Suben -->
@@ -42,7 +42,7 @@
         store.filter === 'up' && activeUpClass
       ]"
     >
-      Suben: {{ store.upCount }}
+      Rise: {{ store.upCount }}
     </button>
 
     <!-- Bajan -->
@@ -53,7 +53,7 @@
         store.filter === 'down' && activeDownClass
       ]"
     >
-      Bajan: {{ store.downCount }}
+      Down: {{ store.downCount }}
     </button>
 
   </div>
