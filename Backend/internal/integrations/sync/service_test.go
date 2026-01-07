@@ -2,26 +2,44 @@ package sync_test
 
 import (
 	"errors"
-	"go-vue-journey/internal/integrations/sync"
+	syncsvc "go-vue-journey/internal/integrations/sync"
 	"go-vue-journey/internal/stock"
+	"sync"
 	"testing"
 	"time"
 )
 
 // MockStockProvider es un mock del StockProvider para testing
 type MockStockProvider struct {
+	//Cuantas veces se llama a la función GetStocks
 	callCount int
+	//Que páginas debe devolver con cada llamada
 	responses []*stock.Page
-	errors    []error
+	//Que error debe de devolver con cada llamada
+	errors []error
 }
 
+// Método que reemplaza al método real que se requiere probar
 func (m *MockStockProvider) GetStocks(page *string) (*stock.Page, error) {
+	//Esto se hace con el fin de frenar llamadas inesperasas, si el test se llama más de lo esperado
 	if m.callCount >= len(m.responses) {
+		//Termina la ejecucion y falla el test
 		return nil, errors.New("unexpected call to GetStocks")
 	}
 
+	/*
+
+		Esto es un retorno controlado
+		en la primera ejecución la funcion envia
+		m.errors[0]
+		m.response[0]
+		...
+		asi sucesivamente
+
+	*/
 	err := m.errors[m.callCount]
 	response := m.responses[m.callCount]
+	//añade 1 al contador de llamadas de la función
 	m.callCount++
 
 	return response, err
@@ -29,32 +47,52 @@ func (m *MockStockProvider) GetStocks(page *string) (*stock.Page, error) {
 
 // MockStockRepository es un mock del StockRepository para testing
 type MockStockRepository struct {
+	//Guarda los stocks que se procesaron
 	UpsertedStocks []stock.Stock
-	UpsertError    error
+	//Simula un error en la base de datos
+	UpsertError error
+	mu          sync.Mutex
 }
 
+// Método que prueba el método original del repositorio de guardar archivos
 func (m *MockStockRepository) Upsert(s stock.Stock) error {
+	//Si la db falla entonces envia el error
 	if m.UpsertError != nil {
 		return m.UpsertError
 	}
+
+	//Si la db envia un ok entonces guarda el dato
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.UpsertedStocks = append(m.UpsertedStocks, s)
 	return nil
 }
 
-func (m *MockStockRepository) GetStocks() ([]stock.Stock, error) {
+/*
+Estos métodos no se testea aquí debido a que este test esta
+diseñado principalmente para la sincronozación de la base de datos
+con la API externa
+*/
+
+func (m *MockStockRepository) GetStocks(limit int, cursorTicker *string, filter stock.StockFilter) ([]stock.Stock, error) {
 	return nil, nil
+}
+
+func (m *MockStockRepository) GetStocksStats() (stock.StocksStats, error) {
+	return stock.StocksStats{}, nil
 }
 
 func (m *MockStockRepository) GetTopStocks(n int) ([]stock.Stock, error) {
 	return nil, nil
 }
 
+// Este test prueba principalmente la creación de los nuevos servicions
 func TestNewService(t *testing.T) {
 	provider := &MockStockProvider{}
 	repository := &MockStockRepository{}
 	workers := 5
 
-	svc := sync.NewService(provider, repository, workers)
+	svc := syncsvc.NewService(provider, repository, workers)
 
 	if svc == nil {
 		t.Error("NewService debería retornar un servicio no nil")
@@ -96,7 +134,7 @@ func TestRun_Success_SinglePage(t *testing.T) {
 
 	repository := &MockStockRepository{}
 
-	svc := sync.NewService(provider, repository, 2)
+	svc := syncsvc.NewService(provider, repository, 2)
 
 	// Act
 	err := svc.Run()
@@ -157,7 +195,7 @@ func TestRun_Success_MultiplePages(t *testing.T) {
 
 	repository := &MockStockRepository{}
 
-	svc := sync.NewService(provider, repository, 1)
+	svc := syncsvc.NewService(provider, repository, 1)
 
 	// Act
 	err := svc.Run()
@@ -185,7 +223,7 @@ func TestRun_ProviderError(t *testing.T) {
 
 	repository := &MockStockRepository{}
 
-	svc := sync.NewService(provider, repository, 1)
+	svc := syncsvc.NewService(provider, repository, 1)
 
 	// Act
 	err := svc.Run()
@@ -230,7 +268,7 @@ func TestRun_RepositoryError(t *testing.T) {
 		UpsertError: errors.New("database error"),
 	}
 
-	svc := sync.NewService(provider, repository, 1)
+	svc := syncsvc.NewService(provider, repository, 1)
 
 	// Act
 	err := svc.Run()
@@ -264,7 +302,7 @@ func TestRun_MultipleWorkers(t *testing.T) {
 
 	repository := &MockStockRepository{}
 
-	svc := sync.NewService(provider, repository, 5)
+	svc := syncsvc.NewService(provider, repository, 5)
 
 	// Act
 	err := svc.Run()
@@ -305,7 +343,7 @@ func TestRun_EmptyPage(t *testing.T) {
 
 	repository := &MockStockRepository{}
 
-	svc := sync.NewService(provider, repository, 1)
+	svc := syncsvc.NewService(provider, repository, 1)
 
 	// Act
 	err := svc.Run()

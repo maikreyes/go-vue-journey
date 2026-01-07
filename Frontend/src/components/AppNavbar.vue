@@ -1,11 +1,5 @@
 <script setup lang="ts">
-
-    declare const __LINKEDIN_URL__: string;
-    declare const __GITHUB_URL__:string
-
-    const GitHub = __GITHUB_URL__
-    const LinkedIn = __LINKEDIN_URL__
-
+    import { GitHub, LinkedIn } from '../config/config';
 </script>
 
 <template>

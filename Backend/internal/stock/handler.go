@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 type Handler struct {
@@ -18,12 +19,32 @@ func NewHandler(service Service) *Handler {
 
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	var page *string
+	var cursorTicker *string
+	limit := 10
+	filter := StockFilterAll
 
 	if p := r.URL.Query().Get("next_page"); p != "" {
 		page = &p
 	}
 
-	result, err := h.service.ListStocks(page)
+	if c := r.URL.Query().Get("cursor"); c != "" {
+		cursorTicker = &c
+	}
+
+	if l := r.URL.Query().Get("limit"); l != "" {
+		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
+			limit = parsed
+		}
+	}
+
+	if f := r.URL.Query().Get("filter"); f != "" {
+		switch StockFilter(f) {
+		case StockFilterAll, StockFilterUp, StockFilterDown:
+			filter = StockFilter(f)
+		}
+	}
+
+	result, err := h.service.ListStocksWithMeta(page, limit, cursorTicker, filter)
 	if err != nil {
 		http.Error(w, "failed to load stocks", http.StatusInternalServerError)
 		return

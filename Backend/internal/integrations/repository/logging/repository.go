@@ -37,10 +37,10 @@ func (r *Repository) Upsert(s stock.Stock) error {
 	return nil
 }
 
-func (r *Repository) GetStocks() ([]stock.Stock, error) {
+func (r *Repository) GetStocks(limit int, cursorTicker *string, filter stock.StockFilter) ([]stock.Stock, error) {
 	start := time.Now()
 
-	stocks, err := r.next.GetStocks()
+	stocks, err := r.next.GetStocks(limit, cursorTicker, filter)
 
 	elapsed := time.Since(start)
 
@@ -57,6 +57,29 @@ func (r *Repository) GetStocks() ([]stock.Stock, error) {
 		elapsed, len(stocks),
 	)
 	return stocks, nil
+}
+
+func (r *Repository) GetStocksStats() (stock.StocksStats, error) {
+	start := time.Now()
+
+	stats, err := r.next.GetStocksStats()
+
+	elapsed := time.Since(start)
+
+	if err != nil {
+		log.Printf(
+			"[STOCK][ERROR] GetStocksStats duration=%s error=%v",
+			elapsed, err,
+		)
+		return stock.StocksStats{}, err
+	}
+
+	log.Printf(
+		"[STOCK][GET_STATS] duration=%s total=%d up=%d down=%d",
+		elapsed, stats.Total, stats.Up, stats.Down,
+	)
+
+	return stats, nil
 }
 
 func (r *Repository) GetTopStocks(limit int) ([]stock.Stock, error) {
