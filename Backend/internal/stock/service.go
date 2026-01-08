@@ -24,13 +24,11 @@ func NewService(provider StockProvider, repository StockRepository) *Service {
 }
 
 func (s *Service) ListStocks(page *string, limit int, cursorTicker *string, filter StockFilter) (*[]Stock, error) {
-	// Read from DB first for low-latency responses.
 	repoResult, err := s.repository.GetStocks(limit, cursorTicker, filter)
 	if err == nil {
 		return &repoResult, nil
 	}
 
-	// If DB fails, fallback to API.
 	apiResult, apiErr := s.provider.GetStocks(page)
 	if apiErr != nil {
 		return nil, apiErr

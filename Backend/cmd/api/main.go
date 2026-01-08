@@ -1,11 +1,11 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"go-vue-journey/internal/config"
 	"go-vue-journey/internal/integrations/api"
 	"go-vue-journey/internal/integrations/repository/cockroachdb"
+	"go-vue-journey/internal/integrations/repository/db"
 	"go-vue-journey/internal/integrations/repository/logging"
 	"go-vue-journey/internal/integrations/sync"
 	"go-vue-journey/internal/router"
@@ -30,17 +30,15 @@ func main() {
 	apiclient := api.NewClient(ctg.ApiEndpoint, ctg.Authentication)
 	apiService := api.NewProvider(apiclient)
 
-	db, err := sql.Open("pgx", ctg.Dsn)
+	DB, err := db.Connect(ctg.Dsn)
+
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := db.Ping(); err != nil {
-		log.Fatal("db unreachable:", err)
-	}
 
-	cockroachdb.Migrate(db)
+	cockroachdb.Migrate(DB)
 
-	repo := cockroachdb.New(db)
+	repo := cockroachdb.New(DB)
 	repoWithLogging := logging.New(repo)
 
 	syncService := sync.NewService(apiService, repoWithLogging, 5)

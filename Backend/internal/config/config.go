@@ -7,6 +7,7 @@ type Config struct {
 	ApiEndpoint    string
 	Authentication string
 	Dsn            string
+	FrontendURL    string
 }
 
 func Load() *Config {
@@ -15,5 +16,6 @@ func Load() *Config {
 		ApiEndpoint:    os.Getenv("API_ENDPOINT"),
 		Authentication: os.Getenv("AUTHENTICATION"),
 		Dsn:            os.Getenv("CONNECTION_STRING"),
+		FrontendURL:    os.Getenv("FRONTEND_URL"),
 	}
 }

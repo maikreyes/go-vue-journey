@@ -161,7 +161,6 @@ func TestService_ListStocks_RepoFailureDoesNotBreakResponse(t *testing.T) {
 		t.Fatal("expected no error even if repo fails")
 	}
 
-	// Should fallback to API results when repo fails
 	if len(*result) != 3 {
 		t.Fatalf("expected 3 items from API fallback, got %d", len(*result))
 	}

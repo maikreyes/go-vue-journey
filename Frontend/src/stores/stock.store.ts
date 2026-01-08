@@ -82,8 +82,6 @@ export const useStockStore = defineStore('stock', {
     },
 
     paginatedStocks(): EnrichedStock[] {
-      // Con paginación por cursor, el backend ya entrega “una página” (limit).
-      // Mantenemos el mismo contrato con los componentes.
       if (this.serverTotalPages > 0) return this.sortedStocks
 
       const start = (this.currentPage - 1) * this.pageSize
@@ -149,8 +147,6 @@ export const useStockStore = defineStore('stock', {
       this.filter = filter
       this.currentPage = 1
 
-    // Cuando estamos usando paginación/stats del backend,
-    // el filtro debe aplicarse server-side.
     if (this.serverTotalPages > 0) {
     void this.setStocks()
     }
