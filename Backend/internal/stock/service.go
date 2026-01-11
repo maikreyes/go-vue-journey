@@ -9,6 +9,7 @@ type StockRepository interface {
 	GetStocks(limit int, cursorTicker *string, filter StockFilter) ([]Stock, error)
 	GetStocksStats() (StocksStats, error)
 	GetTopStocks(int) ([]Stock, error)
+	GetStockByTicker(string) (*[]Stock, error)
 }
 
 type Service struct {
@@ -72,5 +73,27 @@ func (s *Service) ListStocksWithMeta(page *string, limit int, cursorTicker *stri
 		Stats:      stats,
 		TotalPages: totalPages,
 		NextCursor: nextCursor,
+	}, nil
+}
+
+func (s *Service) ListStocksByTicker(ticker string) (*StocksResponse, error) {
+	stockItem, err := s.repository.GetStockByTicker(ticker)
+	if err != nil {
+		return nil, err
+	}
+	if stockItem == nil {
+		return &StocksResponse{
+			Items:      []Stock{},
+			Stats:      StocksStats{},
+			TotalPages: 0,
+			NextCursor: nil,
+		}, nil
+	}
+
+	return &StocksResponse{
+		Items:      *stockItem,
+		Stats:      StocksStats{Total: len(*stockItem)},
+		TotalPages: 1,
+		NextCursor: nil,
 	}, nil
 }

@@ -41,7 +41,7 @@ func main() {
 	repo := cockroachdb.New(DB)
 	repoWithLogging := logging.New(repo)
 
-	syncService := sync.NewService(apiService, repoWithLogging, 5)
+	syncService := sync.NewService(apiService, repoWithLogging, 5, ctg.SyncBatchSize)
 
 	go syncService.Run()
 

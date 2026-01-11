@@ -54,6 +54,22 @@ func (f *fakerepository) GetTopStocks(n int) ([]stock.Stock, error) {
 	return nil, nil
 }
 
+func (f *fakerepository) GetStockByTicker(ticker string) (*[]stock.Stock, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	items := make([]stock.Stock, 0)
+	for _, s := range f.upsertedStocks {
+		if s.Ticker == ticker {
+			items = append(items, s)
+		}
+	}
+	if len(items) == 0 {
+		return nil, nil
+	}
+	return &items, nil
+}
+
 // GetStocks implements stock.StockProvider.
 func (f *fakeService) GetStocks(page *string) (*stock.Page, error) {
 	f.receivedPage = page

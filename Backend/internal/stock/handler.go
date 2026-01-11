@@ -44,6 +44,17 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if t := r.URL.Query().Get("ticker"); t != "" {
+		stockItem, err := h.service.ListStocksByTicker(t)
+		if err != nil {
+			http.Error(w, "failed to load stock by ticker", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(stockItem)
+		return
+	}
+
 	result, err := h.service.ListStocksWithMeta(page, limit, cursorTicker, filter)
 	if err != nil {
 		http.Error(w, "failed to load stocks", http.StatusInternalServerError)

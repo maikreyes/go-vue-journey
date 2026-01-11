@@ -13,6 +13,7 @@ export const useStockStore = defineStore('stock', {
   state: () => ({
     stock: [] as Stock[],
     topStocks: [] as Stock[],
+    ticker: '' as string,
 
     serverStats: null as StocksStats | null,
     serverTotalPages: 0,
@@ -34,7 +35,7 @@ export const useStockStore = defineStore('stock', {
   getters: {
     hasData: (state) => state.stock.length > 0,
 
-    /* 🔹 Datos enriquecidos */
+
     enrichedStocks(state): EnrichedStock[] {
       return state.stock.map((s) => {
         const from = parseMoney(s.target_from)
@@ -48,7 +49,7 @@ export const useStockStore = defineStore('stock', {
       })
     },
 
-    /* 🔹 Filtro */
+
     filteredStocks(): EnrichedStock[] {
       if (this.filter === 'all') return this.enrichedStocks
 
@@ -59,7 +60,7 @@ export const useStockStore = defineStore('stock', {
       )
     },
 
-    /* 🔹 Ordenamiento */
+
     sortedStocks(): EnrichedStock[] {
       const dir = this.sortDirection === 'asc' ? 1 : -1
 
@@ -75,7 +76,7 @@ export const useStockStore = defineStore('stock', {
       })
     },
 
-    /* 🔹 Paginación */
+
     totalPages(): number {
       if (this.serverTotalPages > 0) return this.serverTotalPages
       return Math.ceil(this.sortedStocks.length / this.pageSize)
@@ -88,7 +89,7 @@ export const useStockStore = defineStore('stock', {
       return this.sortedStocks.slice(start, start + this.pageSize)
     },
 
-    /* 🔹 Cards */
+
     paginatedStoreCards(): CardProps[] {
       return this.paginatedStocks.map(stockToCard)
     },
@@ -97,7 +98,7 @@ export const useStockStore = defineStore('stock', {
       return state.topStocks.map(stockToCard)
     },
 
-    /* 🔹 Contadores */
+
     totalCount(): number {
       return this.serverStats?.total ?? this.stock.length
     },
@@ -139,6 +140,23 @@ export const useStockStore = defineStore('stock', {
       } catch {
         this.error = 'Error cargando top stocks'
       } finally {
+        this.loading = false
+      }
+    },
+
+    async setTicker(ticker: string) {
+      this.loading = true
+      this.ticker = ticker.toUpperCase()
+      
+      try {
+        const resp = await fetchStocks(undefined, null, 'all', this.ticker)
+        this.stock = resp.items
+        this.serverStats = resp.stats
+        this.serverTotalPages = resp.total_pages
+        this.nextCursor = resp.next_cursor ?? null
+      }catch {
+        this.error = 'Error cargando stock por ticker'
+      }finally {
         this.loading = false
       }
     },
@@ -211,7 +229,7 @@ export const useStockStore = defineStore('stock', {
   },
 })
 
-/* 🔹 Tipo enriquecido */
+
 export interface EnrichedStock extends Stock {
   priceChange: number
   percentageChange: number

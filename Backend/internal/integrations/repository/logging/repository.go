@@ -37,6 +37,47 @@ func (r *Repository) Upsert(s stock.Stock) error {
 	return nil
 }
 
+func (r *Repository) UpsertMany(items []stock.Stock) error {
+	start := time.Now()
+
+	if batchRepo, ok := r.next.(interface{ UpsertMany([]stock.Stock) error }); ok {
+		err := batchRepo.UpsertMany(items)
+		elapsed := time.Since(start)
+
+		if err != nil {
+			log.Printf(
+				"[STOCK][ERROR] UpsertMany count=%d duration=%s err=%v",
+				len(items), elapsed, err,
+			)
+			return err
+		}
+
+		log.Printf(
+			"[STOCK][UPSERT_MANY] count=%d duration=%s",
+			len(items), elapsed,
+		)
+		return nil
+	}
+
+	for _, s := range items {
+		if err := r.next.Upsert(s); err != nil {
+			elapsed := time.Since(start)
+			log.Printf(
+				"[STOCK][ERROR] UpsertMany(fallback) count=%d duration=%s err=%v",
+				len(items), elapsed, err,
+			)
+			return err
+		}
+	}
+
+	elapsed := time.Since(start)
+	log.Printf(
+		"[STOCK][UPSERT_MANY(fallback)] count=%d duration=%s",
+		len(items), elapsed,
+	)
+	return nil
+}
+
 func (r *Repository) GetStocks(limit int, cursorTicker *string, filter stock.StockFilter) ([]stock.Stock, error) {
 	start := time.Now()
 
@@ -103,4 +144,24 @@ func (r *Repository) GetTopStocks(limit int) ([]stock.Stock, error) {
 	)
 
 	return stocks, nil
+}
+
+func (r *Repository) GetStockByTicker(ticker string) (*[]stock.Stock, error) {
+	start := time.Now()
+
+	stockItem, err := r.next.GetStockByTicker(ticker)
+	elapsed := time.Since(start)
+
+	if err != nil {
+		log.Printf(
+			"[STOCK][ERROR] GetStockByTicker ticker=%s duration=%s err=%v",
+			ticker, elapsed, err,
+		)
+		return nil, err
+	}
+	log.Printf(
+		"[STOCK][GET_BY_TICKER] ticker=%s duration=%s found=%t",
+		ticker, elapsed, stockItem != nil,
+	)
+	return stockItem, nil
 }

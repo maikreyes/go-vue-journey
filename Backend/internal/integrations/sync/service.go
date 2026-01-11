@@ -9,27 +9,40 @@ type Service struct {
 	provider   stock.StockProvider
 	repository stock.StockRepository
 	workers    int
+	batchSize  int
 }
 
-func NewService(provider stock.StockProvider, repository stock.StockRepository, workers int) *Service {
+func NewService(provider stock.StockProvider, repository stock.StockRepository, workers int, batchSize int) *Service {
+	if batchSize <= 0 {
+		batchSize = 10
+	}
 	return &Service{
 		provider:   provider,
 		repository: repository,
 		workers:    workers,
+		batchSize:  batchSize,
 	}
 }
 
 func (s *Service) Run() error {
-	stocksCh := make(chan stock.Stock)
+	stocksCh := make(chan []stock.Stock)
 	var wg sync.WaitGroup
+
+	batchSize := s.batchSize
 
 	// workers
 	for i := 0; i < s.workers; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for stock := range stocksCh {
-				_ = s.repository.Upsert(stock)
+			for batch := range stocksCh {
+				if batchRepo, ok := s.repository.(interface{ UpsertMany([]stock.Stock) error }); ok {
+					_ = batchRepo.UpsertMany(batch)
+					continue
+				}
+				for _, item := range batch {
+					_ = s.repository.Upsert(item)
+				}
 			}
 		}()
 	}
@@ -37,6 +50,7 @@ func (s *Service) Run() error {
 	seenPages := make(map[string]struct{})
 
 	var page *string
+	buffer := make([]stock.Stock, 0, batchSize)
 
 	for {
 		result, err := s.provider.GetStocks(page)
@@ -45,7 +59,13 @@ func (s *Service) Run() error {
 		}
 
 		for _, item := range result.Items {
-			stocksCh <- item
+			buffer = append(buffer, item)
+			if len(buffer) == batchSize {
+				batch := make([]stock.Stock, batchSize)
+				copy(batch, buffer)
+				stocksCh <- batch
+				buffer = buffer[:0]
+			}
 		}
 
 		if result.NextPage == nil {
@@ -58,6 +78,12 @@ func (s *Service) Run() error {
 
 		seenPages[*result.NextPage] = struct{}{}
 		page = result.NextPage
+	}
+
+	if len(buffer) > 0 {
+		batch := make([]stock.Stock, len(buffer))
+		copy(batch, buffer)
+		stocksCh <- batch
 	}
 
 	close(stocksCh)

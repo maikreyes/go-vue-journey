@@ -86,13 +86,17 @@ func (m *MockStockRepository) GetTopStocks(n int) ([]stock.Stock, error) {
 	return nil, nil
 }
 
+func (m *MockStockRepository) GetStockByTicker(ticker string) (*[]stock.Stock, error) {
+	return nil, nil
+}
+
 // Este test prueba principalmente la creación de los nuevos servicions
 func TestNewService(t *testing.T) {
 	provider := &MockStockProvider{}
 	repository := &MockStockRepository{}
 	workers := 5
 
-	svc := syncsvc.NewService(provider, repository, workers)
+	svc := syncsvc.NewService(provider, repository, workers, 10)
 
 	if svc == nil {
 		t.Error("NewService debería retornar un servicio no nil")
@@ -134,7 +138,7 @@ func TestRun_Success_SinglePage(t *testing.T) {
 
 	repository := &MockStockRepository{}
 
-	svc := syncsvc.NewService(provider, repository, 2)
+	svc := syncsvc.NewService(provider, repository, 2, 10)
 
 	// Act
 	err := svc.Run()
@@ -195,7 +199,7 @@ func TestRun_Success_MultiplePages(t *testing.T) {
 
 	repository := &MockStockRepository{}
 
-	svc := syncsvc.NewService(provider, repository, 1)
+	svc := syncsvc.NewService(provider, repository, 1, 10)
 
 	// Act
 	err := svc.Run()
@@ -223,7 +227,7 @@ func TestRun_ProviderError(t *testing.T) {
 
 	repository := &MockStockRepository{}
 
-	svc := syncsvc.NewService(provider, repository, 1)
+	svc := syncsvc.NewService(provider, repository, 1, 10)
 
 	// Act
 	err := svc.Run()
@@ -268,7 +272,7 @@ func TestRun_RepositoryError(t *testing.T) {
 		UpsertError: errors.New("database error"),
 	}
 
-	svc := syncsvc.NewService(provider, repository, 1)
+	svc := syncsvc.NewService(provider, repository, 1, 10)
 
 	// Act
 	err := svc.Run()
@@ -302,7 +306,7 @@ func TestRun_MultipleWorkers(t *testing.T) {
 
 	repository := &MockStockRepository{}
 
-	svc := syncsvc.NewService(provider, repository, 5)
+	svc := syncsvc.NewService(provider, repository, 5, 10)
 
 	// Act
 	err := svc.Run()
@@ -343,7 +347,7 @@ func TestRun_EmptyPage(t *testing.T) {
 
 	repository := &MockStockRepository{}
 
-	svc := syncsvc.NewService(provider, repository, 1)
+	svc := syncsvc.NewService(provider, repository, 1, 10)
 
 	// Act
 	err := svc.Run()

@@ -59,6 +59,19 @@ func (f *fakeRepo) GetTopStocks(n int) ([]stock.Stock, error) {
 	return nil, nil
 }
 
+func (f *fakeRepo) GetStockByTicker(ticker string) (*[]stock.Stock, error) {
+	items := make([]stock.Stock, 0)
+	for _, s := range f.saved {
+		if s.Ticker == ticker {
+			items = append(items, s)
+		}
+	}
+	if len(items) == 0 {
+		return nil, nil
+	}
+	return &items, nil
+}
+
 type failingRepo struct{}
 
 func (f failingRepo) Upsert(stock.Stock) error {
@@ -74,6 +87,10 @@ func (f failingRepo) GetStocksStats() (stock.StocksStats, error) {
 }
 
 func (f failingRepo) GetTopStocks(n int) ([]stock.Stock, error) {
+	return nil, errors.New("db down")
+}
+
+func (f failingRepo) GetStockByTicker(ticker string) (*[]stock.Stock, error) {
 	return nil, errors.New("db down")
 }
 
