@@ -54,20 +54,48 @@ func (f *fakerepository) GetTopStocks(n int) ([]stock.Stock, error) {
 	return nil, nil
 }
 
-func (f *fakerepository) GetStockByTicker(ticker string) (*[]stock.Stock, error) {
+func (f *fakerepository) GetStocksByTicker(tickerPrefix string, limit int, cursorTicker *string) ([]stock.Stock, error) {
 	if f.err != nil {
 		return nil, f.err
 	}
 	items := make([]stock.Stock, 0)
 	for _, s := range f.upsertedStocks {
-		if s.Ticker == ticker {
+		if len(tickerPrefix) == 0 || (len(s.Ticker) >= len(tickerPrefix) && s.Ticker[:len(tickerPrefix)] == tickerPrefix) {
 			items = append(items, s)
 		}
 	}
-	if len(items) == 0 {
-		return nil, nil
+	return items, nil
+}
+
+func (f *fakerepository) CountStocksByTicker(tickerPrefix string) (int, error) {
+	if f.err != nil {
+		return 0, f.err
 	}
-	return &items, nil
+	count := 0
+	for _, s := range f.upsertedStocks {
+		if len(tickerPrefix) == 0 || (len(s.Ticker) >= len(tickerPrefix) && s.Ticker[:len(tickerPrefix)] == tickerPrefix) {
+			count++
+		}
+	}
+	return count, nil
+}
+
+func (f *fakerepository) GetStocksStatsByTicker(tickerPrefix string) (stock.StocksStats, error) {
+	if f.err != nil {
+		return stock.StocksStats{}, f.err
+	}
+	stats := stock.StocksStats{}
+	for _, s := range f.upsertedStocks {
+		if len(tickerPrefix) == 0 || (len(s.Ticker) >= len(tickerPrefix) && s.Ticker[:len(tickerPrefix)] == tickerPrefix) {
+			stats.Total++
+			if s.TargetTo > s.TargetFrom {
+				stats.Up++
+			} else if s.TargetTo < s.TargetFrom {
+				stats.Down++
+			}
+		}
+	}
+	return stats, nil
 }
 
 // GetStocks implements stock.StockProvider.

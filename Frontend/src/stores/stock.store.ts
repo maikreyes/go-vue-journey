@@ -149,7 +149,10 @@ export const useStockStore = defineStore('stock', {
       this.ticker = ticker.toUpperCase()
       
       try {
-        const resp = await fetchStocks(undefined, null, 'all', this.ticker)
+        this.currentPage = 1
+        this.pageCursors = { 1: null }
+
+        const resp = await fetchStocks(this.pageSize, null, 'all', this.ticker)
         this.stock = resp.items
         this.serverStats = resp.stats
         this.serverTotalPages = resp.total_pages
@@ -190,7 +193,7 @@ export const useStockStore = defineStore('stock', {
       this.loading = true
       this.error = null
       try {
-        const resp = await fetchStocks(this.pageSize, cursor, this.filter)
+        const resp = await fetchStocks(this.pageSize, cursor, this.ticker ? 'all' : this.filter, this.ticker ? this.ticker : null)
         this.pageCursors[nextPageNum] = cursor
         this.currentPage = nextPageNum
         this.stock = resp.items
@@ -214,7 +217,7 @@ export const useStockStore = defineStore('stock', {
       this.loading = true
       this.error = null
       try {
-        const resp = await fetchStocks(this.pageSize, cursor, this.filter)
+        const resp = await fetchStocks(this.pageSize, cursor, this.ticker ? 'all' : this.filter, this.ticker ? this.ticker : null)
         this.currentPage = prevPageNum
         this.stock = resp.items
         this.serverStats = resp.stats

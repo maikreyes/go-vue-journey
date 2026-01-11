@@ -219,22 +219,50 @@ func (r *Repository) GetTopStocks(limit int) ([]stock.Stock, error) {
 	return stocks, nil
 }
 
-func (r *Repository) GetStockByTicker(ticker string) (*[]stock.Stock, error) {
-	rows, err := r.db.Query(`
-		SELECT *
-		FROM stocks
-		WHERE ticker LIKE $1
-		ORDER BY ticker ASC;
-		`,
-		ticker+"%",
+func (r *Repository) GetStocksByTicker(tickerPrefix string, limit int, cursorTicker *string) ([]stock.Stock, error) {
+	var (
+		rows *sql.Rows
+		err  error
 	)
+
+	like := tickerPrefix + "%"
+
+	if limit <= 0 {
+		limit = 10
+	}
+
+	if cursorTicker == nil || *cursorTicker == "" {
+		rows, err = r.db.Query(`
+			SELECT *
+			FROM stocks
+			WHERE ticker LIKE $1
+			ORDER BY ticker ASC
+			LIMIT $2;
+			`,
+			like,
+			limit,
+		)
+	} else {
+		rows, err = r.db.Query(`
+			SELECT *
+			FROM stocks
+			WHERE ticker LIKE $1
+				AND ticker > $2
+			ORDER BY ticker ASC
+			LIMIT $3;
+			`,
+			like,
+			*cursorTicker,
+			limit,
+		)
+	}
 	if err != nil {
 		return nil, err
 	}
 
 	defer rows.Close()
 
-	stocks := make([]stock.Stock, 0)
+	stocks := make([]stock.Stock, 0, limit)
 
 	for rows.Next() {
 		var s stock.Stock
@@ -259,5 +287,50 @@ func (r *Repository) GetStockByTicker(ticker string) (*[]stock.Stock, error) {
 		return nil, err
 	}
 
-	return &stocks, nil
+	return stocks, nil
+}
+
+func (r *Repository) CountStocksByTicker(tickerPrefix string) (int, error) {
+	// Deprecated: mantenido temporalmente para evitar romper callers antiguos.
+	stats, err := r.GetStocksStatsByTicker(tickerPrefix)
+	if err != nil {
+		return 0, err
+	}
+	return stats.Total, nil
+}
+
+func (r *Repository) GetStocksStatsByTicker(tickerPrefix string) (stock.StocksStats, error) {
+	like := tickerPrefix + "%"
+	var stats stock.StocksStats
+
+	err := r.db.QueryRow(`
+		SELECT
+			COUNT(*)::INT AS total,
+			SUM(
+				CASE
+					WHEN NULLIF(REPLACE(REPLACE(target_to, '$', ''), ',', ''), '')::numeric
+						>
+						NULLIF(REPLACE(REPLACE(target_from, '$', ''), ',', ''), '')::numeric
+					THEN 1
+					ELSE 0
+				END
+			)::INT AS up,
+			SUM(
+				CASE
+					WHEN NULLIF(REPLACE(REPLACE(target_to, '$', ''), ',', ''), '')::numeric
+						<
+						NULLIF(REPLACE(REPLACE(target_from, '$', ''), ',', ''), '')::numeric
+					THEN 1
+					ELSE 0
+				END
+			)::INT AS down
+		FROM stocks
+		WHERE ticker LIKE $1;
+		`,
+		like,
+	).Scan(&stats.Total, &stats.Up, &stats.Down)
+	if err != nil {
+		return stock.StocksStats{}, err
+	}
+	return stats, nil
 }

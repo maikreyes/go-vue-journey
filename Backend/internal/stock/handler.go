@@ -45,7 +45,7 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if t := r.URL.Query().Get("ticker"); t != "" {
-		stockItem, err := h.service.ListStocksByTicker(t)
+		stockItem, err := h.service.ListStocksByTicker(t, limit, cursorTicker)
 		if err != nil {
 			http.Error(w, "failed to load stock by ticker", http.StatusInternalServerError)
 			return

@@ -59,17 +59,39 @@ func (f *fakeRepo) GetTopStocks(n int) ([]stock.Stock, error) {
 	return nil, nil
 }
 
-func (f *fakeRepo) GetStockByTicker(ticker string) (*[]stock.Stock, error) {
+func (f *fakeRepo) GetStocksByTicker(tickerPrefix string, limit int, cursorTicker *string) ([]stock.Stock, error) {
 	items := make([]stock.Stock, 0)
 	for _, s := range f.saved {
-		if s.Ticker == ticker {
+		if len(tickerPrefix) == 0 || (len(s.Ticker) >= len(tickerPrefix) && s.Ticker[:len(tickerPrefix)] == tickerPrefix) {
 			items = append(items, s)
 		}
 	}
-	if len(items) == 0 {
-		return nil, nil
+	return items, nil
+}
+
+func (f *fakeRepo) CountStocksByTicker(tickerPrefix string) (int, error) {
+	count := 0
+	for _, s := range f.saved {
+		if len(tickerPrefix) == 0 || (len(s.Ticker) >= len(tickerPrefix) && s.Ticker[:len(tickerPrefix)] == tickerPrefix) {
+			count++
+		}
 	}
-	return &items, nil
+	return count, nil
+}
+
+func (f *fakeRepo) GetStocksStatsByTicker(tickerPrefix string) (stock.StocksStats, error) {
+	stats := stock.StocksStats{}
+	for _, s := range f.saved {
+		if len(tickerPrefix) == 0 || (len(s.Ticker) >= len(tickerPrefix) && s.Ticker[:len(tickerPrefix)] == tickerPrefix) {
+			stats.Total++
+			if s.TargetTo > s.TargetFrom {
+				stats.Up++
+			} else if s.TargetTo < s.TargetFrom {
+				stats.Down++
+			}
+		}
+	}
+	return stats, nil
 }
 
 type failingRepo struct{}
@@ -90,8 +112,16 @@ func (f failingRepo) GetTopStocks(n int) ([]stock.Stock, error) {
 	return nil, errors.New("db down")
 }
 
-func (f failingRepo) GetStockByTicker(ticker string) (*[]stock.Stock, error) {
+func (f failingRepo) GetStocksByTicker(tickerPrefix string, limit int, cursorTicker *string) ([]stock.Stock, error) {
 	return nil, errors.New("db down")
+}
+
+func (f failingRepo) CountStocksByTicker(tickerPrefix string) (int, error) {
+	return 0, errors.New("db down")
+}
+
+func (f failingRepo) GetStocksStatsByTicker(tickerPrefix string) (stock.StocksStats, error) {
+	return stock.StocksStats{}, errors.New("db down")
 }
 
 func TestService_ListStocks_FetchAndStore(t *testing.T) {

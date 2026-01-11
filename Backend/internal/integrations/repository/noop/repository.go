@@ -23,3 +23,15 @@ func (r *Repository) GetStocksStats() (stock.StocksStats, error) {
 func (r *Repository) GetTopStocks(n int) ([]stock.Stock, error) {
 	return []stock.Stock{}, nil
 }
+
+func (r *Repository) GetStocksByTicker(tickerPrefix string, limit int, cursorTicker *string) ([]stock.Stock, error) {
+	return []stock.Stock{}, nil
+}
+
+func (r *Repository) CountStocksByTicker(tickerPrefix string) (int, error) {
+	return 0, nil
+}
+
+func (r *Repository) GetStocksStatsByTicker(tickerPrefix string) (stock.StocksStats, error) {
+	return stock.StocksStats{}, nil
+}

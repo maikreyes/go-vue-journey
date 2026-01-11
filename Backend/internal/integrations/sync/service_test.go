@@ -86,8 +86,16 @@ func (m *MockStockRepository) GetTopStocks(n int) ([]stock.Stock, error) {
 	return nil, nil
 }
 
-func (m *MockStockRepository) GetStockByTicker(ticker string) (*[]stock.Stock, error) {
+func (m *MockStockRepository) GetStocksByTicker(tickerPrefix string, limit int, cursorTicker *string) ([]stock.Stock, error) {
 	return nil, nil
+}
+
+func (m *MockStockRepository) CountStocksByTicker(tickerPrefix string) (int, error) {
+	return 0, nil
+}
+
+func (m *MockStockRepository) GetStocksStatsByTicker(tickerPrefix string) (stock.StocksStats, error) {
+	return stock.StocksStats{}, nil
 }
 
 // Este test prueba principalmente la creación de los nuevos servicions

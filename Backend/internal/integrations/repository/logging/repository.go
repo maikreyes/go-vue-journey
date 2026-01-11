@@ -146,22 +146,39 @@ func (r *Repository) GetTopStocks(limit int) ([]stock.Stock, error) {
 	return stocks, nil
 }
 
-func (r *Repository) GetStockByTicker(ticker string) (*[]stock.Stock, error) {
+func (r *Repository) GetStocksByTicker(tickerPrefix string, limit int, cursorTicker *string) ([]stock.Stock, error) {
 	start := time.Now()
-
-	stockItem, err := r.next.GetStockByTicker(ticker)
+	items, err := r.next.GetStocksByTicker(tickerPrefix, limit, cursorTicker)
 	elapsed := time.Since(start)
 
 	if err != nil {
 		log.Printf(
-			"[STOCK][ERROR] GetStockByTicker ticker=%s duration=%s err=%v",
-			ticker, elapsed, err,
+			"[STOCK][ERROR] GetStocksByTicker prefix=%s limit=%d duration=%s err=%v",
+			tickerPrefix, limit, elapsed, err,
 		)
 		return nil, err
 	}
 	log.Printf(
-		"[STOCK][GET_BY_TICKER] ticker=%s duration=%s found=%t",
-		ticker, elapsed, stockItem != nil,
+		"[STOCK][GET_BY_TICKER] prefix=%s limit=%d duration=%s count=%d",
+		tickerPrefix, limit, elapsed, len(items),
 	)
-	return stockItem, nil
+	return items, nil
+}
+
+func (r *Repository) GetStocksStatsByTicker(tickerPrefix string) (stock.StocksStats, error) {
+	start := time.Now()
+	stats, err := r.next.GetStocksStatsByTicker(tickerPrefix)
+	elapsed := time.Since(start)
+	if err != nil {
+		log.Printf(
+			"[STOCK][ERROR] GetStocksStatsByTicker prefix=%s duration=%s err=%v",
+			tickerPrefix, elapsed, err,
+		)
+		return stock.StocksStats{}, err
+	}
+	log.Printf(
+		"[STOCK][STATS_BY_TICKER] prefix=%s duration=%s total=%d up=%d down=%d",
+		tickerPrefix, elapsed, stats.Total, stats.Up, stats.Down,
+	)
+	return stats, nil
 }

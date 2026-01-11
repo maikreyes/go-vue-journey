@@ -9,7 +9,8 @@ type StockRepository interface {
 	GetStocks(limit int, cursorTicker *string, filter StockFilter) ([]Stock, error)
 	GetStocksStats() (StocksStats, error)
 	GetTopStocks(int) ([]Stock, error)
-	GetStockByTicker(string) (*[]Stock, error)
+	GetStocksByTicker(tickerPrefix string, limit int, cursorTicker *string) ([]Stock, error)
+	GetStocksStatsByTicker(tickerPrefix string) (StocksStats, error)
 }
 
 type Service struct {
@@ -76,24 +77,36 @@ func (s *Service) ListStocksWithMeta(page *string, limit int, cursorTicker *stri
 	}, nil
 }
 
-func (s *Service) ListStocksByTicker(ticker string) (*StocksResponse, error) {
-	stockItem, err := s.repository.GetStockByTicker(ticker)
+func (s *Service) ListStocksByTicker(ticker string, limit int, cursorTicker *string) (*StocksResponse, error) {
+	items, err := s.repository.GetStocksByTicker(ticker, limit, cursorTicker)
 	if err != nil {
 		return nil, err
 	}
-	if stockItem == nil {
-		return &StocksResponse{
-			Items:      []Stock{},
-			Stats:      StocksStats{},
-			TotalPages: 0,
-			NextCursor: nil,
-		}, nil
+
+	if limit > 0 && len(items) > limit {
+		items = items[:limit]
+	}
+
+	stats, err := s.repository.GetStocksStatsByTicker(ticker)
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := 0
+	if limit > 0 {
+		totalPages = (stats.Total + limit - 1) / limit
+	}
+
+	var nextCursor *string
+	if len(items) > 0 {
+		last := items[len(items)-1].Ticker
+		nextCursor = &last
 	}
 
 	return &StocksResponse{
-		Items:      *stockItem,
-		Stats:      StocksStats{Total: len(*stockItem)},
-		TotalPages: 1,
-		NextCursor: nil,
+		Items:      items,
+		Stats:      stats,
+		TotalPages: totalPages,
+		NextCursor: nextCursor,
 	}, nil
 }
