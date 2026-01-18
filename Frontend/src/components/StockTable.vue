@@ -8,6 +8,27 @@ const sortIcon = (col: string) => {
   if (store.sortBy !== col) return ''
   return store.sortDirection === 'asc' ? '▲' : '▼'
 }
+
+const priceDiff = (stock: { target_from?: string | number | null; target_to?: string | number | null }) => {
+  const from = parseMoney(stock.target_from)
+  const to = parseMoney(stock.target_to)
+  return to - from
+}
+
+const priceClass = (stock: { target_from?: string | number | null; target_to?: string | number | null }) => {
+  const diff = priceDiff(stock)
+  if (diff > 0) return 'text-green-600'
+  if (diff < 0) return 'text-red-500'
+  return 'text-yellow-500'
+}
+
+const percentChange = (stock: { target_from?: string | number | null; target_to?: string | number | null }) => {
+  const from = parseMoney(stock.target_from)
+  const to = parseMoney(stock.target_to)
+  const avg = (to + from) / 2
+  if (avg === 0) return 0
+  return ((to - from) / avg) * 100
+}
 </script>
 
 <template>
@@ -195,31 +216,19 @@ const sortIcon = (col: string) => {
 
           <td
             class="py-3 px-2 text-right font-semibold"
-            :class="
-              parseMoney(stock.target_to) > parseMoney(stock.target_from)
-                ? 'text-green-600'
-                : 'text-red-500'
-            "
+            :class="priceClass(stock)"
           >
             {{
-              `$${(parseMoney(stock.target_to) - parseMoney(stock.target_from)).toFixed(2)}`
+              `$${priceDiff(stock).toFixed(2)}`
             }}
           </td>
 
           <td
             class="py-3 px-2 text-right font-semibold"
-            :class="
-              parseMoney(stock.target_to) > parseMoney(stock.target_from)
-                ? 'text-green-600'
-                : 'text-red-500'
-            "
+            :class="priceClass(stock)"
           >
             {{
-              `${(
-                (parseMoney(stock.target_to) - parseMoney(stock.target_from)) /
-                ((parseMoney(stock.target_to) + parseMoney(stock.target_from)) / 2) *
-                100
-              ).toFixed(2)}%`
+              `${percentChange(stock).toFixed(2)}%`
             }}
           </td>
         </tr>

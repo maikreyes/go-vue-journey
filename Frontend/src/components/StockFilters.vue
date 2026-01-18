@@ -18,6 +18,9 @@
     const activeDownClass =
     'bg-red-500 text-white dark:bg-red-600 ring-2 ring-red-400'
 
+    const activeEqualClass =
+    'bg-yellow-500 text-white dark:bg-yellow-600 ring-2 ring-yellow-300'
+
 </script>
 
 <template>
@@ -54,6 +57,17 @@
       ]"
     >
       Down: {{ store.downCount }}
+    </button>
+
+    <!-- Sin cambio -->
+    <button
+      @click="store.setFilter('equal')"
+      :class="[
+        baseClass,
+        store.filter === 'equal' && activeEqualClass
+      ]"
+    >
+      Equal: {{ store.noChangeCount }}
     </button>
 
   </div>

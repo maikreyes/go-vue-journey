@@ -6,7 +6,7 @@ import { fetchStocks, fetchTopStocks } from '../api/stock.api'
 import { parseMoney } from '../utils/Money'
 import type { StocksStats } from '../models/stocksResponse.model'
 
-export type StockFilter = 'all' | 'up' | 'down'
+export type StockFilter = 'all' | 'up' | 'down' | 'equal'
 export type SortDirection = 'asc' | 'desc'
 
 export const useStockStore = defineStore('stock', {
@@ -51,13 +51,15 @@ export const useStockStore = defineStore('stock', {
 
 
     filteredStocks(): EnrichedStock[] {
-      if (this.filter === 'all') return this.enrichedStocks
+      const byFilter = this.filter === 'all'
+        ? this.enrichedStocks
+        : this.enrichedStocks.filter((s) => {
+          if (this.filter === 'up') return s.priceChange > 0
+          if (this.filter === 'down') return s.priceChange < 0
+          return s.priceChange === 0
+        })
 
-      return this.enrichedStocks.filter((s) =>
-        this.filter === 'up'
-          ? s.priceChange > 0
-          : s.priceChange < 0
-      )
+      return byFilter
     },
 
 
@@ -100,13 +102,16 @@ export const useStockStore = defineStore('stock', {
 
 
     totalCount(): number {
-      return this.serverStats?.total ?? this.stock.length
+      return this.serverStats?.all_stocks ?? this.stock.length
     },
     upCount(): number {
-      return this.serverStats?.up ?? this.enrichedStocks.filter(s => s.priceChange > 0).length
+      return this.serverStats?.up_stocks ?? this.enrichedStocks.filter(s => s.priceChange > 0).length
     },
     downCount(): number {
-      return this.serverStats?.down ?? this.enrichedStocks.filter(s => s.priceChange < 0).length
+      return this.serverStats?.down_stocks ?? this.enrichedStocks.filter(s => s.priceChange < 0).length
+    },
+    noChangeCount(): number {
+      return this.serverStats?.no_change ?? this.enrichedStocks.filter(s => s.priceChange === 0).length
     },
   },
 
@@ -119,11 +124,15 @@ export const useStockStore = defineStore('stock', {
         this.currentPage = 1
         this.pageCursors = { 1: null }
 
-        const resp = await fetchStocks(this.pageSize, null, this.filter)
+        const resp = await fetchStocks({
+          nextPage: null,
+          filter: this.filter,
+          ticker: this.ticker ? this.ticker : null,
+        })
         this.stock = resp.items
         this.serverStats = resp.stats
-        this.serverTotalPages = resp.total_pages
-        this.nextCursor = resp.next_cursor ?? null
+        this.serverTotalPages = resp.stats.pages
+        this.nextCursor = resp.next_cursor && resp.next_cursor.length > 0 ? resp.next_cursor : null
       } catch {
         this.error = 'Error cargando stocks'
       } finally {
@@ -146,20 +155,26 @@ export const useStockStore = defineStore('stock', {
 
     async setTicker(ticker: string) {
       this.loading = true
+      this.error = null
       this.ticker = ticker.toUpperCase()
-      
+
       try {
         this.currentPage = 1
         this.pageCursors = { 1: null }
 
-        const resp = await fetchStocks(this.pageSize, null, 'all', this.ticker)
+        const resp = await fetchStocks({
+          nextPage: null,
+          filter: this.filter,
+          ticker: this.ticker ? this.ticker : null,
+        })
+
         this.stock = resp.items
         this.serverStats = resp.stats
-        this.serverTotalPages = resp.total_pages
-        this.nextCursor = resp.next_cursor ?? null
-      }catch {
+        this.serverTotalPages = resp.stats.pages
+        this.nextCursor = resp.next_cursor && resp.next_cursor.length > 0 ? resp.next_cursor : null
+      } catch {
         this.error = 'Error cargando stock por ticker'
-      }finally {
+      } finally {
         this.loading = false
       }
     },
@@ -168,9 +183,9 @@ export const useStockStore = defineStore('stock', {
       this.filter = filter
       this.currentPage = 1
 
-    if (this.serverTotalPages > 0) {
-    void this.setStocks()
-    }
+      if (this.serverTotalPages > 0) {
+        void this.setStocks()
+      }
     },
 
     setSort(column: keyof EnrichedStock) {
@@ -193,13 +208,17 @@ export const useStockStore = defineStore('stock', {
       this.loading = true
       this.error = null
       try {
-        const resp = await fetchStocks(this.pageSize, cursor, this.ticker ? 'all' : this.filter, this.ticker ? this.ticker : null)
+        const resp = await fetchStocks({
+          nextPage: cursor,
+          filter: this.filter,
+          ticker: this.ticker ? this.ticker : null,
+        })
         this.pageCursors[nextPageNum] = cursor
         this.currentPage = nextPageNum
         this.stock = resp.items
         this.serverStats = resp.stats
-        this.serverTotalPages = resp.total_pages
-        this.nextCursor = resp.next_cursor ?? null
+        this.serverTotalPages = resp.stats.pages
+        this.nextCursor = resp.next_cursor && resp.next_cursor.length > 0 ? resp.next_cursor : null
       } catch {
         this.error = 'Error cargando stocks'
       } finally {
@@ -217,12 +236,16 @@ export const useStockStore = defineStore('stock', {
       this.loading = true
       this.error = null
       try {
-        const resp = await fetchStocks(this.pageSize, cursor, this.ticker ? 'all' : this.filter, this.ticker ? this.ticker : null)
+        const resp = await fetchStocks({
+          nextPage: cursor,
+          filter: this.filter,
+          ticker: this.ticker ? this.ticker : null,
+        })
         this.currentPage = prevPageNum
         this.stock = resp.items
         this.serverStats = resp.stats
-        this.serverTotalPages = resp.total_pages
-        this.nextCursor = resp.next_cursor ?? null
+        this.serverTotalPages = resp.stats.pages
+        this.nextCursor = resp.next_cursor && resp.next_cursor.length > 0 ? resp.next_cursor : null
       } catch {
         this.error = 'Error cargando stocks'
       } finally {

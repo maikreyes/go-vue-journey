@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"go-vue-journey/internal/config"
+	"backend/internal/config"
 	"net/http"
 )
 

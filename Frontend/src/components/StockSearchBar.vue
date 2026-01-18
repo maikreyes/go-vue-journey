@@ -3,9 +3,15 @@
     import { useStockStore } from '../stores/stock.store';  
     const store = useStockStore();
     const searchQuery = ref('');
-    watch(searchQuery, (newQuery) => {
-        store.setTicker(newQuery);
-    });
+
+  let debounceId: number | undefined
+
+  watch(searchQuery, (newQuery) => {
+    if (debounceId) window.clearTimeout(debounceId)
+    debounceId = window.setTimeout(() => {
+      void store.setTicker(newQuery)
+    }, 350)
+  });
 
 </script>
 <template>
