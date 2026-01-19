@@ -1,8 +1,6 @@
 package stocks
 
 import (
-	"backend/internal/domain"
-	"encoding/json"
 	"log"
 	"net/http"
 	"strings"
@@ -46,14 +44,7 @@ func (h *Handler) GetStocks(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		response := domain.ApiResponse{
-			Items:      stocks.Items,
-			Stats:      *stats,
-			NextCursor: &stocks.NextPage,
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		h.Write(*stocks, *stats, w)
 		return
 	}
 
@@ -66,14 +57,7 @@ func (h *Handler) GetStocks(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		response := domain.ApiResponse{
-			Items:      stocks.Items,
-			Stats:      *stats,
-			NextCursor: &stocks.NextPage,
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		h.Write(*stocks, *stats, w)
 		return
 	}
 
@@ -85,12 +69,5 @@ func (h *Handler) GetStocks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := domain.ApiResponse{
-		Items:      stocks.Items,
-		Stats:      *stats,
-		NextCursor: &stocks.NextPage,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	h.Write(*stocks, *stats, w)
 }
