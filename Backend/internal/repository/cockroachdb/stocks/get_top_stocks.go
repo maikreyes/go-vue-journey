@@ -24,21 +24,26 @@ func (r *Repository) GetTopStocks(limit int) (*[]domain.Stock, error) {
 		rating_to,
 		time
 	FROM stocks
-	WHERE rating_to = $1
+	WHERE rating_to IN ('Buy', 'Strong-Buy', 'Outperform', 'Overweight')
 		AND target_from IS NOT NULL
-		AND REPLACE(REPLACE(target_from, '$', ''), ',', '')::FLOAT > 0
+		AND REGEXP_REPLACE(target_from, '[^0-9.]', '', 'g')::FLOAT > 0
 	ORDER BY
 		(
-			(
-			REPLACE(REPLACE(target_to, '$', ''), ',', '')::FLOAT
+          CASE
+            WHEN rating_to = 'Strong-Buy' THEN 2
+            WHEN rating_to = 'Buy' THEN 1
+            ELSE 0
+          END) DESC,
+  		((
+			REGEXP_REPLACE(target_to, '[^0-9.]', '', 'g')::FLOAT
 			-
-			REPLACE(REPLACE(target_from, '$', ''), ',', '')::FLOAT
+			REGEXP_REPLACE(target_from, '[^0-9.]', '', 'g')::FLOAT
 			)
 			/
-			REPLACE(REPLACE(target_from, '$', ''), ',', '')::FLOAT
+			REGEXP_REPLACE(target_from, '[^0-9.]', '', 'g')::FLOAT
 		) DESC
-	LIMIT $2;
-	`, "Buy", limit)
+	LIMIT $1;
+	`, limit)
 
 	if err != nil {
 		return nil, err

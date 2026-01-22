@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import TrendingUp from '../../public/trending_up.svg?url'
 import TrendingDown from '../../public/trending_down.svg?url'
 import type { CardProps } from '../models/cardProps.model';
-import { parseMoney } from '../utils/Money';
+import { parseMoney } from '../utils/paserMoney';
 
 const props = defineProps<CardProps>()
 
@@ -23,7 +23,7 @@ const trendingIcon = computed(() =>
 )
 
 const actionColor = computed(() => {
-  if (props.action === 'Buy') return 'text-green-500'
+  if (props.action === 'Buy' || props.action === 'Strong-Buy') return 'text-green-500'
   return 'text-gray-600'
 })
 </script>

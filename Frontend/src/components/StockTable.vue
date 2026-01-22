@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useStockStore } from '../stores/stock.store'
-import { parseMoney } from '../utils/Money'
+import { parseMoney } from '../utils/paserMoney'
 
 const store = useStockStore()
 

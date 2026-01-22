@@ -3,7 +3,7 @@ import type { Stock } from '../models/stock.model'
 import { stockToCard } from '../mappers/stock.mapper'
 import type { CardProps } from '../models/cardProps.model'
 import { fetchStocks, fetchTopStocks } from '../api/stock.api'
-import { parseMoney } from '../utils/Money'
+import { parseMoney } from '../utils/paserMoney'
 import type { StocksStats } from '../models/stocksResponse.model'
 
 export type StockFilter = 'all' | 'up' | 'down' | 'equal'
