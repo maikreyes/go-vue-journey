@@ -54,7 +54,14 @@ func main() {
 
 	router := router.NewRouter(hanlder)
 
-	go syncService.Run()
+	go func() {
+		log.Printf("[SYNC] starting (workers=%d, batchSize=%d)", ctg.Workers, ctg.BatchSize)
+		if err := syncService.Run(); err != nil {
+			log.Printf("[SYNC] failed: %v", err)
+			return
+		}
+		log.Printf("[SYNC] finished successfully")
+	}()
 
 	port := ":" + ctg.Port
 

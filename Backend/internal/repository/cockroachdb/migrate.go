@@ -24,7 +24,7 @@ func Migrate(db *pgxpool.Pool) error {
 		brokerage TEXT,
 		rating_from TEXT,
 		rating_to TEXT,
-		created_at TIMESTAMPTZ
+		time TIMESTAMPTZ
 	);
 `)
 	if err != nil {

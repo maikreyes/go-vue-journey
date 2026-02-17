@@ -2,6 +2,7 @@ package sync
 
 import (
 	"backend/internal/domain"
+	"errors"
 	"sync"
 )
 
@@ -9,8 +10,29 @@ func (s *Service) Run() error {
 	batchSize := s.BatchSize
 	workers := s.Workers
 
+	if workers <= 0 {
+		return errors.New("sync: WORKERS must be > 0")
+	}
+	if batchSize <= 0 {
+		return errors.New("sync: BATCH_SIZE must be > 0")
+	}
+
 	batchesCh := make(chan []domain.Stock)
 	errCh := make(chan error, 1)
+	stopCh := make(chan struct{})
+	var stopOnce sync.Once
+	fail := func(err error) {
+		if err == nil {
+			return
+		}
+		stopOnce.Do(func() {
+			select {
+			case errCh <- err:
+			default:
+			}
+			close(stopCh)
+		})
+	}
 
 	var wg sync.WaitGroup
 
@@ -22,17 +44,16 @@ func (s *Service) Run() error {
 
 			for batch := range batchesCh {
 				if err := s.Repository.Upsert(batch); err != nil {
-					select {
-					case errCh <- err:
-					default:
-					}
+					fail(err)
 					return
 				}
 			}
 		}()
 	}
 
+	producerDone := make(chan struct{})
 	go func() {
+		defer close(producerDone)
 		defer close(batchesCh)
 
 		var page *string
@@ -40,9 +61,15 @@ func (s *Service) Run() error {
 		seenPages := make(map[string]bool)
 
 		for {
+			select {
+			case <-stopCh:
+				return
+			default:
+			}
+
 			stocksPage, err := s.Provider.FetchStocks(page)
 			if err != nil {
-				errCh <- err
+				fail(err)
 				return
 			}
 
@@ -60,7 +87,11 @@ func (s *Service) Run() error {
 				buffer = append(buffer, stock)
 
 				if len(buffer) == batchSize {
-					batchesCh <- buffer
+					select {
+					case <-stopCh:
+						return
+					case batchesCh <- buffer:
+					}
 					buffer = nil
 				}
 			}
@@ -71,10 +102,17 @@ func (s *Service) Run() error {
 		}
 
 		if len(buffer) > 0 {
-			batchesCh <- buffer
+			select {
+			case <-stopCh:
+				return
+			case batchesCh <- buffer:
+			}
 		}
 	}()
 
+	// Wait for the producer to finish closing the channel,
+	// then for all workers to drain it.
+	<-producerDone
 	wg.Wait()
 
 	select {

@@ -60,8 +60,10 @@ func (r *Repository) Upsert(stocks []domain.Stock) error {
 			target_to = EXCLUDED.target_to,
 			company = EXCLUDED.company,
 			action = EXCLUDED.action,
+			brokerage = EXCLUDED.brokerage,
 			rating_from = EXCLUDED.rating_from,
-			rating_to = EXCLUDED.rating_to;
+			rating_to = EXCLUDED.rating_to,
+			time = EXCLUDED.time;
 	`
 
 	_, err := r.db.Exec(ctx, query, args...)

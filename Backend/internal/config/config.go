@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"strconv"
+	"strings"
 )
 
 type Config struct {
@@ -28,13 +29,22 @@ func getenvInt(key string, def int) int {
 }
 
 func Load() *Config {
+	providerURL := os.Getenv("API_ENDPOINT")
+
+	token := os.Getenv("AUTHENTICATION")
+
+	authorization := strings.TrimSpace(token)
+	if authorization != "" && !strings.HasPrefix(strings.ToLower(authorization), "bearer ") {
+		authorization = "Bearer " + authorization
+	}
+
 	return &Config{
 		DSN:          os.Getenv("CONNECTION_STRING"),
-		ProviderURL:  os.Getenv("PROVIDER_URL"),
-		Autorization: "Bearer " + os.Getenv("AUTORIZATION_TOKEN"),
+		ProviderURL:  providerURL,
+		Autorization: authorization,
 		Port:         os.Getenv("PORT"),
-		Workers:      getenvInt("WORKERS", 0),
-		BatchSize:    getenvInt("BATCH_SIZE", 0),
+		Workers:      getenvInt("WORKERS", 5),
+		BatchSize:    getenvInt("BATCH_SIZE", 200),
 		FrontendURL:  os.Getenv("FRONTEND_URL"),
 	}
 }
